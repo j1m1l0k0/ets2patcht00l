@@ -1,10 +1,5 @@
-// ets2_patcher.cpp
-// ETS2 1.57.x (Janeiro 2026)
-// Compile com: cl ets2patcher.cpp -o et2patcher.exe
-
-// trainer for euro truck simulator 2 - 1.57.x
-// by j1m1l0k0 ;)
-
+// Trainer ETS2 1.57.x (January 2026)
+// Compile with: cl.exe /Zi /EHsc /nologo /W4 /std:c++17 ets2patcher.cpp /link /OUT:ets2patcher.exe
 
 #include <windows.h>
 #include <tlhelp32.h>
@@ -144,7 +139,7 @@ struct PatchInfo {
     bool isPartial = false;
 };
 
-// Centralização de logs
+// Log centralization
 void logInfo(const std::string& msg) {
     std::cout << "[INFO] " << msg << std::endl;
 }
@@ -155,10 +150,10 @@ void logWarn(const std::string& msg) {
     std::cout << "[WARN] " << msg << std::endl;
 }
 void logErr(const std::string& msg) {
-    std::cerr << "[ERRO] " << msg << std::endl;
+    std::cerr << "[ERROR] " << msg << std::endl;
 }
 
-// Funções para adicionar patches
+// Patch adding functions
 void addFullRetPatch(std::vector<PatchInfo>& patches, const uint8_t* image, size_t imageSize, uintptr_t base, const std::string& patStr, const std::string& name) {
     std::vector<uint8_t> pat;
     std::string mask;
@@ -166,7 +161,7 @@ void addFullRetPatch(std::vector<PatchInfo>& patches, const uint8_t* image, size
 
     uintptr_t addr = scanPattern(image, imageSize, pat, mask, base);
     if (!addr) {
-        logWarn(name + " NAO ENCONTRADO");
+        logWarn(name + " NOT FOUND");
         return;
     }
 
@@ -175,7 +170,7 @@ void addFullRetPatch(std::vector<PatchInfo>& patches, const uint8_t* image, size
     pi.name = name;
     pi.patchBytes.assign(pat.size(), 0xC3);
     patches.push_back(pi);
-    logOk(name + " encontrado @ 0x" + static_cast<std::ostringstream&>(std::ostringstream() << std::hex << addr).str());
+    logOk(name + " found @ 0x" + static_cast<std::ostringstream&>(std::ostringstream() << std::hex << addr).str());
 }
 
 void addInfiniteFuelPatch(std::vector<PatchInfo>& patches, const uint8_t* image, size_t imageSize, uintptr_t base) {
@@ -186,7 +181,7 @@ void addInfiniteFuelPatch(std::vector<PatchInfo>& patches, const uint8_t* image,
 
     uintptr_t addr = scanPattern(image, imageSize, pat, mask, base);
     if (!addr) {
-        logWarn("InfiniteFuel NAO ENCONTRADO");
+        logWarn("InfiniteFuel NOT FOUND");
         return;
     }
 
@@ -196,40 +191,41 @@ void addInfiniteFuelPatch(std::vector<PatchInfo>& patches, const uint8_t* image,
     pi.isPartial = true;
     pi.patchBytes = {0xEB};
     patches.push_back(pi);
-    logOk("InfiniteFuel encontrado @ 0x" + static_cast<std::ostringstream&>(std::ostringstream() << std::hex << addr << " (patch em +2 = 0x" << (addr + 2) << ")").str());
+    logOk("InfiniteFuel found @ 0x" + static_cast<std::ostringstream&>(std::ostringstream() << std::hex << addr << " (patch at +2 = 0x" << (addr + 2) << ")").str());
 }
 
 // --------------------------------------------------
 int main() {
     std::cout << "==============================\n";
-    std::cout << " ETS2 Patcher T00ls\n";
-    std::cout << " Versao: 1.57.x - by j1m1l0k0\n";
-    std::cout << " Data: Jan 04/01/2026\n";
+    std::cout << " ETS2 Patcher Tools\n";
+    std::cout << " Version: 1.57.x - by j1m1l0k0\n";
+    std::cout << " Date: Jan 04/01/2026\n";
     std::cout << "==============================\n\n";
+
 
     const std::wstring procName = L"eurotrucks2.exe";
     DWORD pid = 0;
     for (int i = 0; i < 20 && !pid; ++i) {
         pid = getProcessIdByName(procName);
-        if (!pid) Sleep(1000);  // 1 segundo
+        if (!pid) Sleep(1000);  // 1 second
     }
 
     if (!pid) {
-        std::cerr << "Processo eurotrucks2.exe nao encontrado. Inicie o jogo primeiro.\n";
+        std::cerr << "Process eurotrucks2.exe not found. Start the game first.\n";
         Sleep(5000);
         return 1;
     }
 
     auto mod = getModuleByName(pid, procName);
     if (!mod.has) {
-        std::cerr << "Modulo principal nao encontrado.\n";
+        std::cerr << "Main module not found.\n";
         return 1;
     }
 
     HANDLE hProc = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION | PROCESS_QUERY_INFORMATION, FALSE, pid);
     if (!hProc) {
         DWORD err = GetLastError();
-        std::cerr << "Falha ao abrir o processo (execute como Administrador). Erro: " << err << "\n";
+        std::cerr << "Failed to open process (run as Administrator). Error: " << err << "\n";
         return 1;
     }
 
@@ -247,7 +243,7 @@ int main() {
 
     std::vector<PatchInfo> patches;
 
-    logInfo("Procurando assinaturas para patches...");
+    logInfo("Searching for patch signatures...");
     addFullRetPatch(patches, image.data(), image.size(), base, "40 55 56 57 48 83 EC 70 48 8B B1 ?? 01 00 00", "NoWearTruck");
     addFullRetPatch(patches, image.data(), image.size(), base, "48 83 EC 18 4C 8B 81 ?? 01 00 00", "NoDamageTruck");
     addFullRetPatch(patches, image.data(), image.size(), base, "48 83 EC 48 4C 8B 81 C8 00 00 00 0F 29 7C 24 20 0F 28 FA", "NoCargoDamage");
@@ -257,29 +253,29 @@ int main() {
     std::cout << "------------------------------------------\n";
 
     if (patches.empty()) {
-        std::cerr << "[ERRO] Nenhum patch encontrado - verifique a versao do jogo.\n";
+        std::cerr << "[ERROR] No patch found - check the game version.\n";
         CloseHandle(hProc);
         Sleep(2000);
         return 1;
     }
 
-    std::cout << "\n[INFO] Verificando e aplicando patches...\n";
+    std::cout << "\n[INFO] Checking and applying patches...\n";
     bool allApplied = true;
     for (const auto& p : patches) {
         std::vector<uint8_t> current;
         if (!readRemote(hProc, p.addr, current, p.patchBytes.size())) {
-            std::cout << "[ERRO] Falha ao ler memoria para \"" << p.name << "\"\n";
+            std::cout << "[ERROR] Failed to read memory for \"" << p.name << "\"\n";
             allApplied = false;
             continue;
         }
 
         if (current == p.patchBytes) {
-            std::cout << "[OK]   [OK] Patch já aplicado: " << p.name << (p.isPartial ? " (jmp)" : " (RET)") << "\n";
+            std::cout << "[OK]   [OK] Patch already applied: " << p.name << (p.isPartial ? " (jmp)" : " (RET)") << "\n";
         } else {
             if (writeRemote(hProc, p.addr, p.patchBytes)) {
-                std::cout << "[OK]   [OK] Patch aplicado:    " << p.name << (p.isPartial ? " (jmp)" : " (RET)") << "\n";
+                std::cout << "[OK]   [OK] Patch applied:        " << p.name << (p.isPartial ? " (jmp)" : " (RET)") << "\n";
             } else {
-                std::cout << "[FALHA] [X] Erro ao aplicar:  " << p.name << "\n";
+                std::cout << "[FAIL] [X] Failed to apply:       " << p.name << "\n";
                 allApplied = false;
             }
         }
@@ -289,9 +285,9 @@ int main() {
     CloseHandle(hProc);
 
     if (allApplied && !patches.empty()) {
-        std::cout << "\n[S U C E S S O] Todos os patches estao ATIVOS! Boa viagem (single-player).\n";
+        std::cout << "\n[SUCCESS] All patches are ACTIVE! Have a good trip (single-player).\n";
     } else {
-        std::cout << "\n[ATENÇÃO] Alguns patches falharam. Veja mensagens acima.\n";
+        std::cout << "\n[WARNING] Some patches failed. See messages above.\n";
     }
     std::cout << "==============================\n";
 
